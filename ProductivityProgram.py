@@ -714,7 +714,3 @@ desktop.save("C:/Users/Jiali/Desktop/Productivity/Desktop/2.png",
 
 print("Finished")
 
-
-        
-
-
