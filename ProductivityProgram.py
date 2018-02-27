@@ -11,6 +11,7 @@ import math
 from bokeh.palettes import Spectral10 as pal
 
 # Changeables
+
 previousDays = 14
 previousWeeks = 8
 desiredWorkHoursThisWeek = 30
@@ -32,7 +33,6 @@ def drawText(text,size,rightAlign = False,topMargin = 0, leftBox = True, nextLin
     global textSize; global textSize2; global titleSize
     global spacing; global spacing2
     fnt = ImageFont.truetype('C:/Users/Jiali/Desktop/Productivity/Fonts/akrobat/Akrobat-ExtraBold.otf', size)
-    
     #Change left and right box
     if leftBox == True:
         leftSide = textStartWidth
@@ -40,10 +40,8 @@ def drawText(text,size,rightAlign = False,topMargin = 0, leftBox = True, nextLin
     else:
         leftSide = boxHalf
         rightSide = 1910
-    
     marginCount += topMargin
     heightValue = textStartHeight + marginCount*textMargin + text1Line*(text1+spacing) + text2Line*(text2+spacing) + title1Line*(title1+spacing2)
-    
     if rightAlign == False:
         draw.text((leftSide + textMargin, heightValue),
                   text,
@@ -55,8 +53,7 @@ def drawText(text,size,rightAlign = False,topMargin = 0, leftBox = True, nextLin
         draw.text((rightSide-textMargin-msgW, heightValue),
                   msg,
                   font = fnt,
-                  fill = colorToFill)
-        
+                  fill = colorToFill)     
     if nextLine == True:
         if size <= text1:
             text1Line += 1
@@ -70,10 +67,8 @@ def drawLine(topMargin = False, leftBox = True, colorToFill = (255,255,255,255))
     global text1; global text2; global title1
     global text1Line; global text2Line; global title1Line; global marginCount
     global boxHalf; global textStartHeight; global textStartWidth
-    
     marginCount += 1*topMargin
     heightValue = textStartHeight + marginCount*textMargin + text1Line*(text1+spacing) + text2Line*(text2+spacing) + title1Line*(title1+spacing2)
-            
     if leftBox == True:
         leftSide = textStartWidth
         rightSide = boxHalf
@@ -82,12 +77,12 @@ def drawLine(topMargin = False, leftBox = True, colorToFill = (255,255,255,255))
         leftSide = boxHalf
         rightSide = 1915
         leftMargin = 0; rightMargin = 1
-        
     draw.line(((leftSide + leftMargin*textMargin, heightValue),
                (rightSide - rightMargin*textMargin,heightValue)),
                fill = colorToFill)
 
 # Importing data
+            
 data = pd.DataFrame.from_csv("C:/Users/Jiali/Desktop/Productivity/WorkData.csv",infer_datetime_format=True)
 data['Date'] = pd.to_datetime(data['Date'])
 weeklyData = pd.DataFrame.from_csv("C:/Users/Jiali/Desktop/Productivity/WeeklyData.csv")
@@ -98,6 +93,7 @@ def roundup(x):
     return int(math.ceil(x / 4.0)) * 4
 
 # Reference Dictionaries
+    
 variables = {"r":"Reading", 
              "c":"Chinese", 
              "p":"Programming", 
@@ -137,11 +133,7 @@ colors = {"Reading":pal[3],
           "Total":pal[1]
         }
 
-
 today= dt.datetime.now()
-
-
-
 
 # Creating Missing Data for past weeks: Graph 2
 
@@ -163,22 +155,14 @@ while finishedAdding == False:
         weeklyData = weeklyData.append(miniDf,ignore_index=True)
         previous += 1
 
-        
-            
-        
-
-    
-        
-
-
 # Secondary Data Load
+        
 balance = pd.DataFrame.from_csv("C:/Users/Jiali/Desktop/Productivity/Balance.csv")
 leisurePoints = balance.iloc[0,0]
 spendingMoney = balance.iloc[0,1]
 
-
-
 # Help
+
 print('''
               **********************
               r:Reading
@@ -196,6 +180,7 @@ print('''
               **********************''')
 
 # Data input
+
 now = dt.datetime.now()
 todaysDate = str(now.month)+'/'+ str(now.day)+'/'+str(now.year)
 while off == False:
@@ -248,12 +233,13 @@ while off == False:
             else:leisurePoints -= value2
     else: continue
 
-
 # Update Balances
+    
 balance.iloc[0,0] = leisurePoints
 balance.iloc[0,1] = spendingMoney
 
 # Save session data
+
 data['Date'] = pd.to_datetime(data['Date'])
 data.to_csv("C:/Users/Jiali/Desktop/Productivity/WorkData.csv")
 weeklyData.to_csv("C:/Users/Jiali/Desktop/Productivity/WeeklyData.csv")
@@ -307,6 +293,7 @@ recentLeisureTotals['Date'] = pd.to_datetime(recentLeisureTotals['Date'])
     #Get 8 week data: Graph 2
 weeklyData["Date"] = pd.to_datetime(weeklyData["Date"])
 weeklyData = weeklyData[(now.date()-weeklyData["Date"]) <= dt.timedelta(days = 7*previousWeeks)]
+
     # Generate 7 Day Data  
 sevenDays = []
 for i in dates:
@@ -315,6 +302,17 @@ for i in dates:
     else: sevenDays.append(False)
 sevenDayData = data[sevenDays]
 
+    # Generate 7 day work vs leisure 
+sevenDayLeisure = 0
+sevenDayWork = 0
+for observation in range(len(sevenDayData)):
+    time = recentData["Length"][sevenDayData.index[observation]]
+    item = recentData["Item"][sevenDayData.index[observation]]
+    if item  == "Leisure":
+        sevenDayLeisure += time
+    else:
+        sevenDayWork += time
+        
     # Generate 7 Day Average Dictionary
 sevenDayAverages = {}
 for i in variables.values():
@@ -329,7 +327,6 @@ workTypeLabels = list(sevenDayWorkType.keys())
 workTypeValues = list(sevenDayWorkType.values())
 workTypeValues = workTypeValues/(sum(workTypeValues))
     
-
 # Graphing
 w1,h1 = 500,250
 copyWeeklyData = weeklyData
@@ -347,7 +344,6 @@ fig, ax = plt.subplots()
 DPI = 93
 ax.xaxis.set_major_formatter(formatter)
 fig.set_size_inches(w1/float(DPI),h1/float(DPI))
-
 
 # Graphing 1
 plt.plot(recentWorkTotals["Date"],
@@ -450,9 +446,7 @@ plt.savefig("C:/Users/Jiali/Desktop/Productivity/Plots/bar2.png",
             pad_inches = -.04)
 plt.close(fig)
 
-
-
-    # Bar 3: Work vs Leisure
+    # Bar 3: Exercise this week
 targetHours = desiredExerciseHoursThisWeek
 finishedHoursThisWeek = float(weeklyData[weeklyData["Date"]==thisWeek]["Exercise"]/60)
 small = max(finishedHoursThisWeek,targetHours/10)
@@ -475,10 +469,8 @@ plt.savefig("C:/Users/Jiali/Desktop/Productivity/Plots/bar3.png",
 plt.close(fig)
 
     # Bar 4: Work vs Leisure
-leisureHours = float(weeklyData[weeklyData["Date"]==thisWeek]["Leisure"])
-workHours = float(weeklyData[weeklyData["Date"]==thisWeek]["Total"])
-maxOf = max((workHours+leisureHours), 1)
-ratio = workHours/(maxOf)
+maxOf = max((sevenDayWork+sevenDayLeisure), 1)
+ratio = sevenDayWork/(maxOf)
 fig,x = plt.subplots()
 plt.barh(1,1, color=colors["Leisure"])
 plt.barh(1,ratio, color=colors["Total"])
@@ -495,7 +487,6 @@ plt.savefig("C:/Users/Jiali/Desktop/Productivity/Plots/bar4.png",
             dpi=DPI,
             bbox_inches='tight',
             pad_inches = -.04)
-
 
 # Radar Chart
 w3,h3=120,120
@@ -562,7 +553,6 @@ plt.savefig("C:/Users/Jiali/Desktop/Productivity/Plots/pie1.png",
             pad_inches = -0.05)
 plt.close(fig)
 
-
 # Manipulate Desktop Image
 
 # Changeables
@@ -613,10 +603,6 @@ desktop.paste(radar1, (startWidth+width1 + margins,
 desktop.paste(pie1, (startWidth+width1 + 2*margins + width4,
                      startHeight+2*height1+margins-height4))
 
-
-
-
-
 #Write information
 text1 = 14
 text2 = 18
@@ -664,7 +650,7 @@ drawText(str(sum(sevenDayAverages.values())-sevenDayAverages["Leisure"]), text1,
 
     #Total work hours per week
     
-
+    
 # Right Text/ Reset line values
 text1Line = 0
 text2Line = 0
@@ -699,12 +685,6 @@ while lineNumber<=10:
         ii -= 1
         lineNumber+=1
     
-    
-        
-    
-
-
-
 desktop.save("C:/Users/Jiali/Desktop/Productivity/Desktop/1.png",
              subsampling=0, 
              quality=100)
@@ -713,8 +693,3 @@ desktop.save("C:/Users/Jiali/Desktop/Productivity/Desktop/2.png",
              quality=100)
 
 print("Finished")
-
-
-        
-
-
