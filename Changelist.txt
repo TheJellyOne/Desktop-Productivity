@@ -1,2 +1,9 @@
 Version 1.00
 	- Basis to start documenting new changes to code
+
+Version 1.01
+	- removed unnecessary spaces in code
+	- better formatted comments
+	- corrected bar 3 comment to "Exercise this week" from "Work vs Leisure"
+	- added 7 day work vs leisure calculations in "Calculations for graphs" section
+	- changed bar 4 to show past 7 day work vs leisure data (from showing data only from this week, with each week starting monday)
