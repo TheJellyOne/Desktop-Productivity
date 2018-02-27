@@ -14,7 +14,7 @@ from bokeh.palettes import Spectral10 as pal
 previousDays = 14
 previousWeeks = 8
 desiredWorkHoursThisWeek = 30
-desiredJobSearchHoursThisWeek = 5
+desiredJobSearchHoursThisWeek = 8
 desiredExerciseHoursThisWeek = 3
 off = False      #toggles input on/off
 finishedAdding = False   #toggles week while function on/off
@@ -271,7 +271,7 @@ for i in dates:
         days.append(True)
     else: days.append(False)
 recentData = data[days]
-recentData['Date'] = pd.to_datetime(recentData['Date'])
+recentData.loc[:,"Date"] = pd.to_datetime(recentData.loc[:,"Date"])
 
     # Filling Data for recent days: Graph 1
 recentWorkTotals = {}
@@ -474,7 +474,7 @@ plt.savefig("C:/Users/Jiali/Desktop/Productivity/Plots/bar3.png",
             pad_inches = -.04)
 plt.close(fig)
 
- # Bar 4: Work vs Leisure
+    # Bar 4: Work vs Leisure
 leisureHours = float(weeklyData[weeklyData["Date"]==thisWeek]["Leisure"])
 workHours = float(weeklyData[weeklyData["Date"]==thisWeek]["Total"])
 maxOf = max((workHours+leisureHours), 1)
@@ -713,4 +713,8 @@ desktop.save("C:/Users/Jiali/Desktop/Productivity/Desktop/2.png",
              quality=100)
 
 print("Finished")
+
+
+        
+
 
