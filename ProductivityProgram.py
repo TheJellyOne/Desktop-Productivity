@@ -12,16 +12,16 @@ from bokeh.palettes import Spectral10 as pal
 
 # Changeables
 
-previousDays = 14
-previousWeeks = 8
+recentDays = 14
+recentWeeks = 8
 desiredWorkHoursThisWeek = 30
 desiredJobSearchHoursThisWeek = 8
 desiredExerciseHoursThisWeek = 3
-off = False      #toggles input on/off
-finishedAdding = False   #toggles week while function on/off
-multipliers = {"r":1, "c":1, "p":1, "j":2, "o":1, "e":1.5, "h":1, "g":1}
-modifier = 1
-modifieri = 1
+on = True      #toggles input on/off
+updateWeekWeeklyData = True   #toggles week while function on/off
+updateWeekGoalSheet = True
+multipliers = {"r":1, "c":1, "p":1, "j":1.5, "o":1, "e":1.5, "h":1, "g":1}
+modifier, weekendModifier = 1,2
 
 # FUNCTIONS
 
@@ -80,6 +80,72 @@ def drawLine(topMargin = False, leftBox = True, colorToFill = (255,255,255,255))
     draw.line(((leftSide + leftMargin*textMargin, heightValue),
                (rightSide - rightMargin*textMargin,heightValue)),
                fill = colorToFill)
+            
+def addGoal(name, valuePer, description, variableValue = 0):
+    global goalSheet
+    global goalInfo
+    addDf = pd.DataFrame([[name, variableValue, valuePer, description]], 
+                              columns=(goalInfo.columns))
+    goalInfo = goalInfo.append(addDf,ignore_index=True)
+    goalSheet[name]= [0] * len(goalSheet["Date"])
+    saveAll()
+    
+def autoRewardGoal(name, value):
+    global goalSheet
+    global goalInfo
+    global thisWeek
+    global leisurePoints
+    if value >= 1:
+        if goalSheet[goalSheet["Date"]==thisWeek][name] == 0:
+            goalSheet[goalSheet["Date"]==thisWeek][name] = 1
+            leisurePoints += int(goalInfo[goalInfo["Name"]==name]["ValuePer"])
+            saveAll()
+
+def rewardGoal(name, inputValue = 0):
+    global leisurePoints
+    if int(goalInfo[goalInfo["Name"]==name]["VariableValue"]) == True:
+        goalSheet[goalSheet["Date"]==thisWeek][name] += int(inputValue)
+        leisurePoints += int(inputValue)*int(goalInfo[goalInfo["Name"]==name]["ValuePer"])
+    else:
+        goalSheet[goalSheet["Date"]==thisWeek][name] += 1
+        leisurePoints += int(inputValue)*int(goalInfo[goalInfo["Name"]==name]["ValuePer"])
+        
+def graphBar(target, finished, barType, outputName):
+    global w2,h2
+    global font, DPI
+    barMinimum = max(finished, target/10)
+    fig,x = plt.subplots()
+    plt.bar(1,target, color="gray")
+    plt.bar(1,barMinimum, color=colors[barType])
+    x.xaxis.set_visible(False)
+    x.yaxis.set_visible(False)
+    fig.set_size_inches(w2/float(DPI),h2/float(DPI))
+    plt.text(1,
+             targetHours/2,
+             str(int(float(finished/target)*100))+"%", 
+             horizontalalignment='center',
+            verticalalignment='center', 
+            fontproperties=font)
+    plt.savefig(outputName,
+                dpi=DPI,
+                bbox_inches='tight',
+                pad_inches = -.04)        
+    plt.close(fig)
+        
+def saveAll():
+    global goalSheet
+    global goalInfo
+    global data
+    global weeklyData
+    global balance
+    global aggregate
+    data['Date'] = pd.to_datetime(data['Date'])
+    data.to_csv("C:/Users/Jiali/Desktop/Productivity/WorkData.csv")
+    weeklyData.to_csv("C:/Users/Jiali/Desktop/Productivity/WeeklyData.csv")
+    balance.to_csv("C:/Users/Jiali/Desktop/Productivity/Balance.csv")
+    aggregate.to_csv("C:/Users/Jiali/Desktop/Productivity/Aggregate.csv")
+    goalInfo.to_csv("C:/Users/Jiali/Desktop/Productivity/GoalInfo.csv")
+    goalSheet.to_csv("C:/Users/Jiali/Desktop/Productivity/GoalSheet.csv")
 
 # Importing data
             
@@ -87,6 +153,8 @@ data = pd.DataFrame.from_csv("C:/Users/Jiali/Desktop/Productivity/WorkData.csv",
 data['Date'] = pd.to_datetime(data['Date'])
 weeklyData = pd.DataFrame.from_csv("C:/Users/Jiali/Desktop/Productivity/WeeklyData.csv")
 aggregate = pd.DataFrame.from_csv("C:/Users/Jiali/Desktop/Productivity/Aggregate.csv")
+goalSheet = pd.DataFrame.from_csv("C:/Users/Jiali/Desktop/Productivity/GoalSheet.csv")
+goalInfo = pd.DataFrame.from_csv("C:/Users/Jiali/Desktop/Productivity/GoalInfo.csv")
 
 
 def roundup(x):
@@ -139,21 +207,40 @@ today= dt.datetime.now()
 
 base=today.weekday()
 if base>=6:
-    modifier = modifier*2
+    useModifier = modifier
+else: useModifier = weekendModifier
     
 thisWeek = today-dt.timedelta(days = base)
 thisWeek = thisWeek.strftime("%Y-%m-%d")
-previous = 0
-while finishedAdding == False:
-    theWeek = today-dt.timedelta(days = previous*7+base)
+
+numberOfWeeksPrior = 0
+while updateWeekWeeklyData == True:
+    theWeek = today-dt.timedelta(days = numberOfWeeksPrior*7+base)
     theWeek = theWeek.strftime("%Y-%m-%d")
     if theWeek in list(weeklyData["Date"]):
-        finishedAdding = True
+        updateWeekWeeklyData = False
     else: 
         miniDf = pd.DataFrame([[theWeek,0,0,0,0,0,0,0,0,0,0]], 
                               columns=(["Date"] +list(variables.values())+["Total"]))
         weeklyData = weeklyData.append(miniDf,ignore_index=True)
-        previous += 1
+        numberOfWeeksPrior +=1
+
+numberOfWeeksPrior = 0 
+while updateWeekGoalSheet == True:
+    theWeek = today-dt.timedelta(days = numberOfWeeksPrior*7+base)
+    theWeek = theWeek.strftime("%Y-%m-%d")
+    if theWeek in list(goalSheet["Date"]):
+        updateWeekGoalSheet = False
+    else: 
+        addLine = [theWeek]
+        for i in range(len(goalSheet.columns)-1):
+            addLine.append(0)
+
+        miniDf2 =pd.DataFrame([addLine], 
+                              columns=(goalSheet.columns))
+        
+        goalSheet = goalSheet.append(miniDf2, ignore_index=True)
+        numberOfWeeksPrior += 1
 
 # Secondary Data Load
         
@@ -183,7 +270,8 @@ print('''
 
 now = dt.datetime.now()
 todaysDate = str(now.month)+'/'+ str(now.day)+'/'+str(now.year)
-while off == False:
+
+while on == True:
     x = input("Name time: ")
     y = x[0]
     if y in variables.keys():
@@ -197,7 +285,7 @@ while off == False:
             weeklyData.loc[weeklyData["Date"] == thisWeek, ["Total"]] = weeklyData[weeklyData["Date"] == thisWeek]["Total"] + value
         else:leisurePoints -= value
     elif y == 'q':
-        off = True
+        on = False
     # Transfers leisure points into spending money at rate 100:$1
     elif y == 't':
         value = int(x[1:])
@@ -220,7 +308,8 @@ while off == False:
         thisWeek2 = thisWeek2.strftime("%Y-%m-%d")
         base=today.weekday()
         if base2>=6:
-            modifierThis = modifieri*2
+            oldModifier = weekendModifier
+        else: oldModifier = modifier
         if y2 in variables.keys():
             value2 = int(x2[1:])
             data.loc[len(data)] = [variables[y2],value2, str(now2.month)+'/'+ str(now2.day)+'/'+str(now2.year)]
@@ -228,7 +317,7 @@ while off == False:
             aggregate["Total"] = aggregate["Total"] + value2
             if y2!= "l":
                 aggregate[variables[y2]] = aggregate[variables[y2]] + value2
-                leisurePoints += value2*multipliers[y2]*modifierThis
+                leisurePoints += value2*multipliers[y2]*oldModifier
                 weeklyData.loc[weeklyData["Date"] == thisWeek2, ["Total"]] = weeklyData[weeklyData["Date"] == thisWeek2]["Total"] + value2
             else:leisurePoints -= value2
     else: continue
@@ -240,12 +329,7 @@ balance.iloc[0,1] = spendingMoney
 
 # Save session data
 
-data['Date'] = pd.to_datetime(data['Date'])
-data.to_csv("C:/Users/Jiali/Desktop/Productivity/WorkData.csv")
-weeklyData.to_csv("C:/Users/Jiali/Desktop/Productivity/WeeklyData.csv")
-balance.to_csv("C:/Users/Jiali/Desktop/Productivity/Balance.csv")
-aggregate.to_csv("C:/Users/Jiali/Desktop/Productivity/Aggregate.csv")
-
+saveAll()
 
 # Calculations for graphs
 
@@ -253,7 +337,7 @@ aggregate.to_csv("C:/Users/Jiali/Desktop/Productivity/Aggregate.csv")
 dates = today-data["Date"]
 days = []
 for i in dates:
-    if int(i.days)<previousDays:
+    if int(i.days)<recentDays:
         days.append(True)
     else: days.append(False)
 recentData = data[days]
@@ -262,7 +346,7 @@ recentData.loc[:,"Date"] = pd.to_datetime(recentData.loc[:,"Date"])
     # Filling Data for recent days: Graph 1
 recentWorkTotals = {}
 recentLeisureTotals = {}
-for i in range(previousDays):
+for i in range(recentDays):
     iDaysFromToday = today-dt.timedelta(days = i)
     if len(str(iDaysFromToday.day)) == 1:
         day = "0" + str(iDaysFromToday.day)
@@ -291,8 +375,9 @@ recentLeisureTotals = pd.DataFrame(list(recentLeisureTotals.items()),columns=["D
 recentLeisureTotals['Date'] = pd.to_datetime(recentLeisureTotals['Date'])
 
     #Get 8 week data: Graph 2
-weeklyData["Date"] = pd.to_datetime(weeklyData["Date"])
-weeklyData = weeklyData[(now.date()-weeklyData["Date"]) <= dt.timedelta(days = 7*previousWeeks)]
+copyWeeklyData = weeklyData
+copyWeeklyData["Date"] = pd.to_datetime(copyWeeklyData["Date"])
+copyWeeklyData = weeklyData[(now.date()-copyWeeklyData["Date"]) <= dt.timedelta(days = 7*recentWeeks)]
 
     # Generate 7 Day Data  
 sevenDays = []
@@ -400,73 +485,24 @@ plt.savefig("C:/Users/Jiali/Desktop/Productivity/Plots/plot2.png",
 plt.close(fig)
 
 # Bar graphs
+w2,h2=100,100
     
     # Bar 1: Work hours/goal per week
-w2,h2=100,100
 targetHours = desiredWorkHoursThisWeek
-finishedHoursThisWeek = float(weeklyData[weeklyData["Date"]==thisWeek]["Total"]/60)
-fig,x = plt.subplots()
-small = max(finishedHoursThisWeek,targetHours/10)
-plt.bar(1,targetHours, color="gray")
-plt.bar(1,small, color=colors["Total"])
-x.xaxis.set_visible(False)
-x.yaxis.set_visible(False)
-fig.set_size_inches(w2/float(DPI),h2/float(DPI))
-plt.text(1,
-         targetHours/2,
-         str(int(float(finishedHoursThisWeek/targetHours)*100))+"%", 
-         horizontalalignment='center',
-        verticalalignment='center', 
-        fontproperties=font)
-plt.savefig("C:/Users/Jiali/Desktop/Productivity/Plots/bar1.png",
-            dpi=DPI,
-            bbox_inches='tight',
-            pad_inches = -.04)
-plt.close(fig)
-
+finishedHoursThisWeek = float(copyWeeklyData[copyWeeklyData["Date"]==thisWeek]["Total"]/60)
+autoRewardGoal("WeeklyWorkTarget", float(finishedHoursThisWeek/targetHours))
+graphBar(targetHours,finishedHoursThisWeek,"Total","C:/Users/Jiali/Desktop/Productivity/Plots/bar1.png")
+    
     # Bar 2: Job search hours/ goal per week
 targetHours = desiredJobSearchHoursThisWeek
-finishedHoursThisWeek = float(weeklyData[weeklyData["Date"]==thisWeek]["JobSearch"]/60)
-small = max(finishedHoursThisWeek,targetHours/10)
-fig,x = plt.subplots()
-plt.bar(1,targetHours, color="gray")
-plt.bar(1,small, color=colors["JobSearch"])
-x.xaxis.set_visible(False)
-x.yaxis.set_visible(False)
-fig.set_size_inches(w2/float(DPI),h2/float(DPI))
-plt.text(1,
-         targetHours/2,
-         str(int(float(finishedHoursThisWeek/targetHours)*100))+"%", 
-         horizontalalignment='center',
-        verticalalignment='center', 
-        fontproperties=font)
-plt.savefig("C:/Users/Jiali/Desktop/Productivity/Plots/bar2.png",
-            dpi=DPI,
-            bbox_inches='tight',
-            pad_inches = -.04)
-plt.close(fig)
+finishedHoursThisWeek = float(copyWeeklyData[copyWeeklyData["Date"]==thisWeek]["JobSearch"]/60)
+autoRewardGoal("WeeklyJobSearchTarget", float(finishedHoursThisWeek/targetHours))
+graphBar(targetHours,finishedHoursThisWeek,"JobSearch","C:/Users/Jiali/Desktop/Productivity/Plots/bar2.png")
 
     # Bar 3: Exercise this week
 targetHours = desiredExerciseHoursThisWeek
-finishedHoursThisWeek = float(weeklyData[weeklyData["Date"]==thisWeek]["Exercise"]/60)
-small = max(finishedHoursThisWeek,targetHours/10)
-fig,x = plt.subplots()
-plt.bar(1,targetHours, color="gray")
-plt.bar(1,small, color=colors["Exercise"])
-x.xaxis.set_visible(False)
-x.yaxis.set_visible(False)
-fig.set_size_inches(w2/float(DPI),h2/float(DPI))
-plt.text(1,
-         max(targetHours, finishedHoursThisWeek)/2,
-         str(int(float(finishedHoursThisWeek/targetHours)*100))+"%", 
-         horizontalalignment='center',
-        verticalalignment='center', 
-        fontproperties=font)
-plt.savefig("C:/Users/Jiali/Desktop/Productivity/Plots/bar3.png",
-            dpi=DPI,
-            bbox_inches='tight',
-            pad_inches = -.04)
-plt.close(fig)
+finishedHoursThisWeek = float(copyWeeklyData[copyWeeklyData["Date"]==thisWeek]["Exercise"]/60)
+graphBar(targetHours,finishedHoursThisWeek,"Exercise","C:/Users/Jiali/Desktop/Productivity/Plots/bar3.png")
 
     # Bar 4: Work vs Leisure
 maxOf = max((sevenDayWork+sevenDayLeisure), 1)
@@ -616,7 +652,6 @@ textStartHeight = startHeight+2*margins+height4+height3
 textMargin = 5
 boxHalf = 1920-(1920 - textStartWidth)/2
 
-
 textStartWidth = startWidth+width1 + margins
 textStartHeight = startHeight + margins + height3
 textMargin = 5
@@ -667,6 +702,7 @@ drawText("$" + str(spendingMoney), text2,leftBox = False, rightAlign = True, nex
 drawLine(topMargin = True, leftBox = False)
     # Recent Entries
 drawText("Recent Entries", text2, leftBox = False, topMargin = 1, nextLine = True)
+
 toPrint = 0
 lineNumber = 0
 ii = len(data)-1
