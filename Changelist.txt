@@ -6,4 +6,16 @@ Version 1.01
 	- better formatted comments
 	- corrected bar 3 comment to "Exercise this week" from "Work vs Leisure"
 	- added 7 day work vs leisure calculations in "Calculations for graphs" section
-	- changed bar 4 to show past 7 day work vs leisure data (from showing data only from this week, with each week starting monday)
+	- changed bar 4 to show past 7 day work vs leisure data (from showing data calendar week data)
+
+Version 1.02
+	- renamed a few variables to be more coherent and consistent
+	- moved variable assignments to more accessible locations
+	- added else statement containing value assignment for day referencing modifiers when inputing older data
+	- added goalInfo and goalSheet csv files that store information and progress for goals respectively
+	- added function to create goals
+	- added function to reward goals
+	- added function to automatically reward goals based on weeklyData
+	- added function to save all data manually and replaced old save code with function
+	- added auto goal reward in bar graph code for job search and work hours when exceeding weekly target
+	- added function for bar graphs and replaced old code with functions
