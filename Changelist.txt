@@ -1,12 +1,12 @@
-Version 1.00
-	- Basis to start documenting new changes to code
-
-Version 1.01
-	- removed unnecessary spaces in code
-	- better formatted comments
-	- corrected bar 3 comment to "Exercise this week" from "Work vs Leisure"
-	- added 7 day work vs leisure calculations in "Calculations for graphs" section
-	- changed bar 4 to show past 7 day work vs leisure data (from showing data calendar week data)
+Version 1.03
+	- removed some redundancies in code
+	- subtracted 4 hours from current day calculations so that post-midnight activities are considered as part of the same day
+	- changed "u: use money" to "s: spend money"
+	- fixed legend location of graph 1 to always display in top left
+	- changed autoRewardGoal to reward points based on desiredXHoursThisWeek
+	- removed variables from goals and replaced with global variables within functions
+	- changed bar 3 to reading hours from exercise hours
+	- added resetLine function to reset all line values to 0 and replaced old code with function
 
 Version 1.02
 	- renamed a few variables to be more coherent and consistent
@@ -19,3 +19,13 @@ Version 1.02
 	- added function to save all data manually and replaced old save code with function
 	- added auto goal reward in bar graph code for job search and work hours when exceeding weekly target
 	- added function for bar graphs and replaced old code with functions
+
+Version 1.01
+	- removed unnecessary spaces in code
+	- reformatted comments
+	- corrected bar 3 comment to "Exercise this week" from "Work vs Leisure"
+	- added 7 day work vs leisure calculations in "Calculations for graphs" section
+	- changed bar 4 to show past 7 day work vs leisure data (from showing data calendar week data)
+
+Version 1.00
+	- created basis to start documenting new changes to code
