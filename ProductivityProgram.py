@@ -12,11 +12,12 @@ from bokeh.palettes import Spectral10 as pal
 
 # Changeables
 
-recentDays = 14
+recentDays = 21
 recentWeeks = 8
 desiredWorkHoursThisWeek = 30
 desiredJobSearchHoursThisWeek = 8
 desiredExerciseHoursThisWeek = 3
+desiredReadingHoursThisWeek = 5
 on = True      #toggles input on/off
 updateWeekWeeklyData = True   #toggles week while function on/off
 updateWeekGoalSheet = True
@@ -81,6 +82,16 @@ def drawLine(topMargin = False, leftBox = True, colorToFill = (255,255,255,255))
                (rightSide - rightMargin*textMargin,heightValue)),
                fill = colorToFill)
             
+def resetLines():
+    global text1Line
+    global text2Line
+    global title1Line
+    global marginCount
+    text1Line = 0
+    text2Line = 0
+    title1Line = 0
+    marginCount = 0
+
 def addGoal(name, valuePer, description, variableValue = 0):
     global goalSheet
     global goalInfo
@@ -90,16 +101,17 @@ def addGoal(name, valuePer, description, variableValue = 0):
     goalSheet[name]= [0] * len(goalSheet["Date"])
     saveAll()
     
-def autoRewardGoal(name, value):
+def autoRewardGoal(name):
     global goalSheet
     global goalInfo
     global thisWeek
     global leisurePoints
-    if value >= 1:
-        if goalSheet[goalSheet["Date"]==thisWeek][name] == 0:
-            goalSheet[goalSheet["Date"]==thisWeek][name] = 1
-            leisurePoints += int(goalInfo[goalInfo["Name"]==name]["ValuePer"])
-            saveAll()
+    global targetHours; global finishedHoursThisWeek
+    value = float(finishedHoursThisWeek/targetHours)
+    if value >= 1 and goalSheet[goalSheet["Date"]==thisWeek][name] == 0:
+        goalSheet[goalSheet["Date"]==thisWeek][name] = 1
+        leisurePoints += int(goalInfo[goalInfo["Name"]==name]["ValuePer"]) * targetHours
+        saveAll()
 
 def rewardGoal(name, inputValue = 0):
     global leisurePoints
@@ -126,6 +138,7 @@ def graphBar(target, finished, barType, outputName):
              horizontalalignment='center',
             verticalalignment='center', 
             fontproperties=font)
+    
     plt.savefig(outputName,
                 dpi=DPI,
                 bbox_inches='tight',
@@ -262,13 +275,13 @@ print('''
               g:GeneralProductivity
               l:Leisure
               t:Transfer Points to Money
-              u:Use Money
+              s: spend Money
               i:Input Old Data (Days ago)
               **********************''')
 
 # Data input
 
-now = dt.datetime.now()
+now = dt.datetime.now() - dt.timedelta(hours = 4)
 todaysDate = str(now.month)+'/'+ str(now.day)+'/'+str(now.year)
 
 while on == True:
@@ -294,7 +307,7 @@ while on == True:
             leisurePoints -= z
             spendingMoney += z/100
         else: print("Insufficient funds")
-    elif y == 'u':
+    elif y == 's':
         value = float(x[1:])
         spendingMoney -= value
     # Inputs data from z days ago, updates data, weeklyData, aggregate, leisurepoints
@@ -444,7 +457,8 @@ plt.plot(recentLeisureTotals["Date"],
 plt.xticks(rotation=0, fontproperties=font)
 plt.yticks(fontproperties=font)
 plt.legend(frameon = True,
-           prop = {"weight":"bold"})
+           prop = {"weight":"bold"},
+           loc = "upper left")
 plt.tight_layout()
 plt.savefig("C:/Users/Jiali/Desktop/Productivity/Plots/plot1.png",
             dpi=DPI)
@@ -490,19 +504,20 @@ w2,h2=100,100
     # Bar 1: Work hours/goal per week
 targetHours = desiredWorkHoursThisWeek
 finishedHoursThisWeek = float(copyWeeklyData[copyWeeklyData["Date"]==thisWeek]["Total"]/60)
-autoRewardGoal("WeeklyWorkTarget", float(finishedHoursThisWeek/targetHours))
+autoRewardGoal("WeeklyWorkTarget")
 graphBar(targetHours,finishedHoursThisWeek,"Total","C:/Users/Jiali/Desktop/Productivity/Plots/bar1.png")
     
     # Bar 2: Job search hours/ goal per week
 targetHours = desiredJobSearchHoursThisWeek
 finishedHoursThisWeek = float(copyWeeklyData[copyWeeklyData["Date"]==thisWeek]["JobSearch"]/60)
-autoRewardGoal("WeeklyJobSearchTarget", float(finishedHoursThisWeek/targetHours))
+autoRewardGoal("WeeklyJobSearchTarget")
 graphBar(targetHours,finishedHoursThisWeek,"JobSearch","C:/Users/Jiali/Desktop/Productivity/Plots/bar2.png")
 
-    # Bar 3: Exercise this week
-targetHours = desiredExerciseHoursThisWeek
-finishedHoursThisWeek = float(copyWeeklyData[copyWeeklyData["Date"]==thisWeek]["Exercise"]/60)
-graphBar(targetHours,finishedHoursThisWeek,"Exercise","C:/Users/Jiali/Desktop/Productivity/Plots/bar3.png")
+    # Bar 3: Reading this week
+targetHours = desiredReadingHoursThisWeek
+finishedHoursThisWeek = float(copyWeeklyData[copyWeeklyData["Date"]==thisWeek]["Reading"]/60)
+autoRewardGoal("WeeklyReadingTarget")
+graphBar(targetHours,finishedHoursThisWeek,"Reading","C:/Users/Jiali/Desktop/Productivity/Plots/bar3.png")
 
     # Bar 4: Work vs Leisure
 maxOf = max((sevenDayWork+sevenDayLeisure), 1)
@@ -665,10 +680,7 @@ draw.rectangle([(textStartWidth,textStartHeight),
 draw.line(((boxHalf,textStartHeight + textMargin),(boxHalf,startHeight+2*height1-height4-textMargin)),fill = (255,255,255,255))
 
 # Left Text
-text1Line = 0
-text2Line = 0
-title1Line = 0
-marginCount = 0
+resetLines()
     # Left Title
 drawText("7 Day Average",title1,topMargin = 1, nextLine = True)
     # Item Averages
@@ -687,11 +699,7 @@ drawText(str(sum(sevenDayAverages.values())-sevenDayAverages["Leisure"]), text1,
     
     
 # Right Text/ Reset line values
-text1Line = 0
-text2Line = 0
-title1Line = 0
-marginCount = 0
-
+resetLines()
     # Leisure Point value
 drawText("Leisure Points:",text2, topMargin = 1, leftBox = False)
 drawText(str(int(leisurePoints)), text2, leftBox = False, rightAlign =True, nextLine = True)
