@@ -1,2 +1,4 @@
 # Desktop-Productivity
-A small application that tracks productivity and updates that information onto a desktop image.
+
+Description:
+A small application that takes productivity information, records the data, and updates that information onto a desktop image.
