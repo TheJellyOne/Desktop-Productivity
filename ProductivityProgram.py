@@ -15,14 +15,16 @@ from bokeh.palettes import Spectral10 as pal
 recentDays = 21
 recentWeeks = 8
 desiredWorkHoursThisWeek = 30
-desiredJobSearchHoursThisWeek = 8
+desiredJobSearchHoursThisWeek = 10
 desiredExerciseHoursThisWeek = 3
 desiredReadingHoursThisWeek = 5
+daysInWorkWeek = 7
 on = True      #toggles input on/off
 updateWeekWeeklyData = True   #toggles week while function on/off
 updateWeekGoalSheet = True
 multipliers = {"r":1, "c":1, "p":1, "j":1.5, "o":1, "e":1.5, "h":1, "g":1}
 modifier, weekendModifier = 1,2
+modifierDays = [7]
 
 # FUNCTIONS
 
@@ -108,24 +110,28 @@ def autoRewardGoal(name):
     global leisurePoints
     global targetHours; global finishedHoursThisWeek
     value = float(finishedHoursThisWeek/targetHours)
-    if value >= 1 and goalSheet[goalSheet["Date"]==thisWeek][name] == 0:
-        goalSheet[goalSheet["Date"]==thisWeek][name] = 1
-        leisurePoints += int(goalInfo[goalInfo["Name"]==name]["ValuePer"]) * targetHours
-        saveAll()
+    if (value >= 1) and sum((goalSheet[goalSheet["Date"]==thisWeek][name]) == 0):
+            goalSheet.loc[goalSheet["Date"]==thisWeek, name] = 1
+            leisurePoints += int(goalInfo[goalInfo["Name"]==name]["ValuePer"]) * targetHours
+            saveAll()
 
 def rewardGoal(name, inputValue = 0):
     global leisurePoints
     if int(goalInfo[goalInfo["Name"]==name]["VariableValue"]) == True:
-        goalSheet[goalSheet["Date"]==thisWeek][name] += int(inputValue)
+        goalSheet.loc[goalSheet["Date"]==thisWeek, name] += int(inputValue)
         leisurePoints += int(inputValue)*int(goalInfo[goalInfo["Name"]==name]["ValuePer"])
     else:
-        goalSheet[goalSheet["Date"]==thisWeek][name] += 1
+        goalSheet.loc[goalSheet["Date"]==thisWeek, name] += 1
         leisurePoints += int(inputValue)*int(goalInfo[goalInfo["Name"]==name]["ValuePer"])
+    saveAll()
         
 def graphBar(target, finished, barType, outputName):
     global w2,h2
     global font, DPI
     barMinimum = max(finished, target/10)
+    if finished>target:
+        barMaximum = finished
+    else: barMaximum = target
     fig,x = plt.subplots()
     plt.bar(1,target, color="gray")
     plt.bar(1,barMinimum, color=colors[barType])
@@ -133,7 +139,7 @@ def graphBar(target, finished, barType, outputName):
     x.yaxis.set_visible(False)
     fig.set_size_inches(w2/float(DPI),h2/float(DPI))
     plt.text(1,
-             targetHours/2,
+             barMaximum/2,
              str(int(float(finished/target)*100))+"%", 
              horizontalalignment='center',
             verticalalignment='center', 
@@ -152,6 +158,9 @@ def saveAll():
     global weeklyData
     global balance
     global aggregate
+    global leisurePoints; global spendingMoney
+    balance.iloc[0,0] = leisurePoints
+    balance.iloc[0,1] = spendingMoney
     data['Date'] = pd.to_datetime(data['Date'])
     data.to_csv("C:/Users/Jiali/Desktop/Productivity/WorkData.csv")
     weeklyData.to_csv("C:/Users/Jiali/Desktop/Productivity/WeeklyData.csv")
@@ -219,7 +228,7 @@ today= dt.datetime.now()
 # Creating Missing Data for past weeks: Graph 2
 
 base=today.weekday()
-if base>=6:
+if base in modifierDays:
     useModifier = modifier
 else: useModifier = weekendModifier
     
@@ -335,11 +344,6 @@ while on == True:
             else:leisurePoints -= value2
     else: continue
 
-# Update Balances
-    
-balance.iloc[0,0] = leisurePoints
-balance.iloc[0,1] = spendingMoney
-
 # Save session data
 
 saveAll()
@@ -390,12 +394,12 @@ recentLeisureTotals['Date'] = pd.to_datetime(recentLeisureTotals['Date'])
     #Get 8 week data: Graph 2
 copyWeeklyData = weeklyData
 copyWeeklyData["Date"] = pd.to_datetime(copyWeeklyData["Date"])
-copyWeeklyData = weeklyData[(now.date()-copyWeeklyData["Date"]) <= dt.timedelta(days = 7*recentWeeks)]
+copyWeeklyData = weeklyData[(now.date()-copyWeeklyData["Date"]) <= dt.timedelta(weeks = recentWeeks)]
 
     # Generate 7 Day Data  
 sevenDays = []
 for i in dates:
-    if int(i.days)<=7:
+    if int(i.days)<7:
         sevenDays.append(True)
     else: sevenDays.append(False)
 sevenDayData = data[sevenDays]
@@ -414,7 +418,7 @@ for observation in range(len(sevenDayData)):
     # Generate 7 Day Average Dictionary
 sevenDayAverages = {}
 for i in variables.values():
-    sevenDayAverages[i] = np.round(sum(sevenDayData[sevenDayData["Item"]==i]["Length"])/300,decimals=1)
+    sevenDayAverages[i] = np.round(sum(sevenDayData[sevenDayData["Item"]==i]["Length"])/(60*daysInWorkWeek),decimals=1)
     
     # Generate 7 day work type
 sevenDayWorkType = {"WorkOut":0,"Reinforce":0,"Apply":0,"Learn":0}
@@ -424,11 +428,13 @@ for i in sevenDayAverages.keys():
 workTypeLabels = list(sevenDayWorkType.keys())
 workTypeValues = list(sevenDayWorkType.values())
 workTypeValues = workTypeValues/(sum(workTypeValues))
+
+nanLocation = np.isnan(workTypeValues)
+workTypeValues[nanLocation] = 0
+        
     
 # Graphing
 w1,h1 = 500,250
-copyWeeklyData = weeklyData
-copyWeeklyData["Date"] =  pd.to_datetime(copyWeeklyData['Date'])
 
 # Graph 1 Aesthetic
 sns.set()    
@@ -695,7 +701,9 @@ drawText(str(sum(sevenDayAverages.values())), text1, rightAlign = True, nextLine
 drawText("Work Per Day", text1)
 drawText(str(sum(sevenDayAverages.values())-sevenDayAverages["Leisure"]), text1, rightAlign = True, nextLine = True)
 
-    #Total work hours per week
+    #Work efficiency
+drawText("Day Efficiency", text1)
+drawText(str(int((sum(sevenDayAverages.values())/16)*100)) + "%", text1, rightAlign = True, nextLine = True)
     
     
 # Right Text/ Reset line values
@@ -719,13 +727,26 @@ while lineNumber<=10:
     get = get.strftime("%m-%d")
     if get != toPrint:
         if lineNumber <= 9:
-            drawText(str(get), 13, leftBox = False, nextLine = True, topMargin = True,colorToFill = (255-lineNumber*15,255-lineNumber*15,255-lineNumber*15,255-lineNumber*15))
+            drawText(str(get),
+                     13,
+                     leftBox = False,
+                     nextLine = True,
+                     topMargin = True,
+                     colorToFill = (255-lineNumber*15,255-lineNumber*15,255-lineNumber*15,255-lineNumber*15))
             toPrint = get
             lineNumber+=1
         else: lineNumber+=1
     else:
-        drawText("    " + str(data.loc[ii]["Item"]), 14, leftBox = False,colorToFill = (255-lineNumber*15,255-lineNumber*15,255-lineNumber*15,255-lineNumber*15))
-        drawText(str(data.loc[ii]["Length"]), 13, leftBox = False, rightAlign = True, nextLine = True, colorToFill = (255-lineNumber*15,255-lineNumber*15,255-lineNumber*15,255-lineNumber*15))
+        drawText("    " + str(data.loc[ii]["Item"]),
+                 14,
+                 leftBox = False,
+                 colorToFill = (255-lineNumber*15,255-lineNumber*15,255-lineNumber*15,255-lineNumber*15))
+        drawText(str(data.loc[ii]["Length"]), 
+                 13,
+                 leftBox = False,
+                 rightAlign = True,
+                 nextLine = True,
+                 colorToFill = (255-lineNumber*15,255-lineNumber*15,255-lineNumber*15,255-lineNumber*15))
         ii -= 1
         lineNumber+=1
     
