@@ -1,3 +1,14 @@
+Version 1.04
+	- added text to show efficiency of day
+	- removed second line of copyweeklydata that reset previously cleaned data for graph 2
+	- created list for modifier days from being set to weekends only
+	- added nan to 0 converter for piechart to account for instances when work is nan
+	- changed code to .loc in autorewardgoals
+	- moved save leisure points and balance to saveAll function
+	- added barMaximum in graphBar so that percentage text is always centered when finished hours is greater than target hours
+	- changes <= to < in finding sevenDayData so that it accurately displays last seven days instead of last eight days
+	- added daysInWorkWeek variable so that work week is easily adjustable when calculating averages
+
 Version 1.03
 	- removed some redundancies in code
 	- subtracted 4 hours from current day calculations so that post-midnight activities are considered as part of the same day
